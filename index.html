@@ -41,6 +41,8 @@
   --amber:#f59e0b;           /* meta (linha pontilhada) */
   --purple:#bc8cff;          /* média histórica */
   --gold:#eab308;            /* tips cash */
+  --orange-just1:#f97316;    /* just eat order fee */
+  --orange-just2:#fb923c;    /* just eat tips */
 
   /* Semi-transparent variants */
   --gdim:rgba(57,211,83,0.1);
@@ -858,6 +860,7 @@ const C={
   green:'#39d353',greenDk:'#2da44e',red:'#f85149',wine:'#8b1a2f',
   blue:'#58a6ff',blueDel1:'#0969da',blueDel2:'#58a6ff',blueDel3:'#a5d6ff',
   greenUber1:'#1a7f37',greenUber2:'#2da44e',
+  orangeJust1:'#f97316',orangeJust2:'#fb923c',
   amber:'#f59e0b',purple:'#bc8cff',gold:'#eab308',
   text2:'#8b949e',text3:'#6e7781',text4:'#484f58'
 };
@@ -1062,6 +1065,7 @@ function processGviz(resp){
   const COL_NAMES={
     data:'data',total:'total receita',totalOrders:'total orders',tipscash:'tips cash',
     uberTotal:'uber eats total',uberOF:'uber eats order fee',uberTips:'uber eats tips',uberOrd:'uber eats n orders',
+    justTotal:'just eat total',justOF:'just eat order fee',justTips:'just eat tips',justOrd:'just eat n orders',
     delTotal:'deliveroo total',delOF:'deliveroo order fee',delEF:'deliveroo extras fee',
     delTips:'deliveroo tips',delOrd:'deliveroo n orders',
     feehora:'fee/hora',ordershora:'orders/hora',horas:'horas totais',km:'km totais',
@@ -1098,6 +1102,8 @@ function processGviz(resp){
       km:pn(cv(row,'km')),
       uberTotal:pn(cv(row,'uberTotal')),uberOF:pn(cv(row,'uberOF')),
       uberTips:pn(cv(row,'uberTips')),uberOrd:pn(cv(row,'uberOrd')),
+      justTotal:pn(cv(row,'justTotal')),justOF:pn(cv(row,'justOF')),
+      justTips:pn(cv(row,'justTips')),justOrd:pn(cv(row,'justOrd')),
       delTotal:pn(cv(row,'delTotal')),delOF:pn(cv(row,'delOF')),
       delEF:pn(cv(row,'delEF')),delTips:pn(cv(row,'delTips')),
       delOrd:pn(cv(row,'delOrd')),bike,rentDel,rentUber,
@@ -1119,9 +1125,10 @@ function processGviz(resp){
       wMap.set(key,{key,y:iso.y,wn:iso.w,label:`S${iso.w}/${String(iso.y).slice(-2)}`,
         period:fmtR(mon),monday:mon,
         receita:0,liquido:0,horas:0,km:0,dias:0,orders:0,tips:0,
-        delivRev:0,uberRev:0,
+        delivRev:0,uberRev:0,justRev:0,
         delOF:0,delEF:0,delTips:0,delOrd:0,
         uberOF:0,uberTips:0,uberOrd:0,
+        justOF:0,justTips:0,justOrd:0,
         tipscash:0,bike:0,rentDel:0,rentUber:0,
         days:[]});
     }
@@ -1129,10 +1136,11 @@ function processGviz(resp){
     w.receita+=nn(r.total);w.horas+=nn(r.horas);w.dias++;
     w.km+=nn(r.km);
     w.orders+=nn(r.orders);
-    w.tips+=nn(r.delTips)+nn(r.uberTips)+nn(r.tipscash);
-    w.delivRev+=nn(r.delTotal);w.uberRev+=nn(r.uberTotal);
+    w.tips+=nn(r.delTips)+nn(r.uberTips)+nn(r.justTips)+nn(r.tipscash);
+    w.delivRev+=nn(r.delTotal);w.uberRev+=nn(r.uberTotal);w.justRev+=nn(r.justTotal);
     w.delOF+=nn(r.delOF);w.delEF+=nn(r.delEF);w.delTips+=nn(r.delTips);w.delOrd+=nn(r.delOrd);
     w.uberOF+=nn(r.uberOF);w.uberTips+=nn(r.uberTips);w.uberOrd+=nn(r.uberOrd);
+    w.justOF+=nn(r.justOF);w.justTips+=nn(r.justTips);w.justOrd+=nn(r.justOrd);
     w.tipscash+=nn(r.tipscash);
     w.days.push(r);
   }
@@ -1406,6 +1414,8 @@ function renderDiarioCompose(r, hasData, total){
     {lbl:'Deliveroo tips',       val:nn(r.delTips), color:C.blueDel3},
     {lbl:'Uber order fee',       val:nn(r.uberOF), color:C.greenUber1},
     {lbl:'Uber tips',            val:nn(r.uberTips), color:C.greenUber2},
+    {lbl:'Just Eat order fee',   val:nn(r.justOF), color:C.orangeJust1},
+    {lbl:'Just Eat tips',        val:nn(r.justTips), color:C.orangeJust2},
     {lbl:'Tips cash',            val:nn(r.tipscash), color:GRAY_MED},
   ].filter(p=>p.val>0);
 
@@ -1417,6 +1427,7 @@ function renderDiarioCompose(r, hasData, total){
   // Legenda agrupada por plataforma
   const delTotal=nn(r.delOF)+nn(r.delEF)+nn(r.delTips);
   const uberTotal=nn(r.uberOF)+nn(r.uberTips);
+  const justTotalD=nn(r.justOF)+nn(r.justTips);
   buildGroupedLegend(legEl,
     [
       {name:'Deliveroo', color:C.blueDel1, total:delTotal, subs:[
@@ -1427,6 +1438,10 @@ function renderDiarioCompose(r, hasData, total){
       {name:'Uber Eats', color:C.greenUber1, total:uberTotal, subs:[
         {lbl:'Order fee', val:nn(r.uberOF),   color:C.greenUber1},
         {lbl:'Tips app',  val:nn(r.uberTips), color:C.greenUber2},
+      ]},
+      {name:'Just Eat', color:C.orangeJust1, total:justTotalD, subs:[
+        {lbl:'Order fee', val:nn(r.justOF),   color:C.orangeJust1},
+        {lbl:'Tips app',  val:nn(r.justTips), color:C.orangeJust2},
       ]},
     ],
     [{lbl:'Tips cash', val:nn(r.tipscash), color:GRAY_MED}],
@@ -1620,16 +1635,17 @@ function renderDeducts(containerId, bike, rentDel, rentUber, tipscash, liquido, 
 }
 
 // ─── Helper: renderiza gráfico de tips empilhado + linha % ──────────────────
-function renderTipsChart(chartId, labels, delTipsArr, uberTipsArr, cashArr, totalArr){
-  const tipsTotal=labels.map((_,i)=>parseFloat((delTipsArr[i]+uberTipsArr[i]+cashArr[i]).toFixed(2)));
+function renderTipsChart(chartId, labels, delTipsArr, uberTipsArr, justTipsArr, cashArr, totalArr){
+  const tipsTotal=labels.map((_,i)=>parseFloat((delTipsArr[i]+uberTipsArr[i]+justTipsArr[i]+cashArr[i]).toFixed(2)));
   const pcts=labels.map((_,i)=>{
-    const t=delTipsArr[i]+uberTipsArr[i]+cashArr[i];
+    const t=delTipsArr[i]+uberTipsArr[i]+justTipsArr[i]+cashArr[i];
     return totalArr[i]>0?parseFloat((t/totalArr[i]*100).toFixed(1)):0;
   });
   mkChart(chartId,{type:'bar',
     data:{labels,datasets:[
       {label:'Tips Deliveroo',data:delTipsArr.map(v=>parseFloat(v.toFixed(2))),backgroundColor:C.blueDel3+'cc',borderColor:C.blueDel3,borderWidth:1,stack:'tips',order:2},
       {label:'Tips Uber',data:uberTipsArr.map(v=>parseFloat(v.toFixed(2))),backgroundColor:C.greenUber2+'cc',borderColor:C.greenUber2,borderWidth:1,stack:'tips',order:2},
+      {label:'Tips Just Eat',data:justTipsArr.map(v=>parseFloat(v.toFixed(2))),backgroundColor:C.orangeJust2+'cc',borderColor:C.orangeJust2,borderWidth:1,stack:'tips',order:2},
       {label:'Tips cash',data:cashArr.map(v=>parseFloat(v.toFixed(2))),backgroundColor:GRAY_MED+'cc',borderColor:GRAY_MED,borderWidth:1,stack:'tips',order:2},
       {type:'line',label:'% da receita',data:pcts,
         borderColor:C.amber,backgroundColor:'transparent',
@@ -1656,7 +1672,8 @@ function renderTipsChart(chartId, labels, delTipsArr, uberTipsArr, cashArr, tota
         const meta0=chart.getDatasetMeta(0);
         const meta1=chart.getDatasetMeta(1);
         const meta2=chart.getDatasetMeta(2);
-        if(!meta0||!meta2) return;
+        const meta3=chart.getDatasetMeta(3);
+        if(!meta0||!meta3) return;
         ctx.save();
         ctx.font='600 9px JetBrains Mono';
         ctx.fillStyle='#e6edf3';
@@ -1664,7 +1681,7 @@ function renderTipsChart(chartId, labels, delTipsArr, uberTipsArr, cashArr, tota
         ctx.textBaseline='bottom';
         tipsTotal.forEach((tot,i)=>{
           if(tot<0) return; // skip negative
-          const pts=[meta0,meta1,meta2].map(m=>m.data[i]).filter(Boolean);
+          const pts=[meta0,meta1,meta2,meta3].map(m=>m.data[i]).filter(Boolean);
           if(!pts.length) return;
           const topY=Math.min(...pts.map(p=>p.y));
           const x=meta0.data[i]?meta0.data[i].x:0;
@@ -1952,10 +1969,13 @@ function renderSemana(){
     {lbl:'Deliveroo tips',val:nn(curr.delTips),color:C.blueDel3},
     {lbl:'Uber order fee',val:nn(curr.uberOF),color:C.greenUber1},
     {lbl:'Uber tips',val:nn(curr.uberTips),color:C.greenUber2},
+    {lbl:'Just Eat order fee',val:nn(curr.justOF),color:C.orangeJust1},
+    {lbl:'Just Eat tips',val:nn(curr.justTips),color:C.orangeJust2},
     {lbl:'Tips cash',val:nn(curr.tipscash),color:GRAY_MED},
   ].filter(p=>p.val>0);
   const wDelTot=nn(curr.delOF)+nn(curr.delEF)+nn(curr.delTips);
   const wUberTot=nn(curr.uberOF)+nn(curr.uberTips);
+  const wJustTot=nn(curr.justOF)+nn(curr.justTips);
   const wGroups=[
     {name:'Deliveroo',color:C.blueDel1,total:wDelTot,subs:[
       {lbl:'Order fee',val:nn(curr.delOF),color:C.blueDel1},
@@ -1966,15 +1986,20 @@ function renderSemana(){
       {lbl:'Order fee',val:nn(curr.uberOF),color:C.greenUber1},
       {lbl:'Tips app', val:nn(curr.uberTips),color:C.greenUber2},
     ]},
+    {name:'Just Eat',color:C.orangeJust1,total:wJustTot,subs:[
+      {lbl:'Order fee',val:nn(curr.justOF),color:C.orangeJust1},
+      {lbl:'Tips app', val:nn(curr.justTips),color:C.orangeJust2},
+    ]},
   ];
   if(wTotal>0) renderComposeDonut('w-compose','w-compose-legend','w-compose-center',wParts,wTotal,wGroups,[{lbl:'Tips cash',val:nn(curr.tipscash),color:GRAY_MED}]);
 
   // Breakdown por plataforma
   const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  const wPlatTotal=nn(curr.delivRev)+nn(curr.uberRev);
+  const wPlatTotal=nn(curr.delivRev)+nn(curr.uberRev)+nn(curr.justRev);
   const wDelPct=wPlatTotal>0?(nn(curr.delivRev)/wPlatTotal*100).toFixed(0):'—';
   const wUberPct=wPlatTotal>0?(nn(curr.uberRev)/wPlatTotal*100).toFixed(0):'—';
-  const wDel=nn(curr.delivRev); const wUber=nn(curr.uberRev);
+  const wJustPct=wPlatTotal>0?(nn(curr.justRev)/wPlatTotal*100).toFixed(0):'—';
+  const wDel=nn(curr.delivRev); const wUber=nn(curr.uberRev); const wJust=nn(curr.justRev);
   const wpOf=(v,base)=>base>0?' · '+(v/base*100).toFixed(0)+'%':'';
   s('w-del-total',fe(wDel)+(wPlatTotal>0?' · '+wDelPct+'%':''));
   s('w-del-of',fe(nn(curr.delOF))+wpOf(nn(curr.delOF),wDel));
@@ -1985,6 +2010,10 @@ function renderSemana(){
   s('w-uber-of',fe(nn(curr.uberOF))+wpOf(nn(curr.uberOF),wUber));
   s('w-uber-tips',fe(nn(curr.uberTips))+wpOf(nn(curr.uberTips),wUber));
   s('w-uber-ord',Math.round(nn(curr.uberOrd))+'');
+  s('w-just-total',fe(wJust)+(wPlatTotal>0?' · '+wJustPct+'%':''));
+  s('w-just-of',fe(nn(curr.justOF))+wpOf(nn(curr.justOF),wJust));
+  s('w-just-tips',fe(nn(curr.justTips))+wpOf(nn(curr.justTips),wJust));
+  s('w-just-ord',Math.round(nn(curr.justOrd))+'');
 
   // Descontos e liquido
   renderDeducts('w-deducts',nn(curr.bike),nn(curr.rentDel),nn(curr.rentUber),nn(curr.tipscash),nn(curr.liquido),null);
@@ -1993,9 +2022,10 @@ function renderSemana(){
   // Tips por dia da semana
   const wDelTips=weekDays.map(d=>{const r=gRaw.find(x=>{const xd=new Date(x.date);xd.setHours(0,0,0,0);return xd.getTime()===d.getTime()&&x.worked;});return r?nn(r.delTips):0;});
   const wUberTips=weekDays.map(d=>{const r=gRaw.find(x=>{const xd=new Date(x.date);xd.setHours(0,0,0,0);return xd.getTime()===d.getTime()&&x.worked;});return r?nn(r.uberTips):0;});
+  const wJustTips=weekDays.map(d=>{const r=gRaw.find(x=>{const xd=new Date(x.date);xd.setHours(0,0,0,0);return xd.getTime()===d.getTime()&&x.worked;});return r?nn(r.justTips):0;});
   const wCashTips=weekDays.map(d=>{const r=gRaw.find(x=>{const xd=new Date(x.date);xd.setHours(0,0,0,0);return xd.getTime()===d.getTime()&&x.worked;});return r?nn(r.tipscash):0;});
   const wDayTotals=weekDays.map(d=>{const r=gRaw.find(x=>{const xd=new Date(x.date);xd.setHours(0,0,0,0);return xd.getTime()===d.getTime()&&x.worked;});return r?nn(r.total):0;});
-  renderTipsChart('w-tips-chart',dayLabels,wDelTips,wUberTips,wCashTips,wDayTotals);
+  renderTipsChart('w-tips-chart',dayLabels,wDelTips,wUberTips,wJustTips,wCashTips,wDayTotals);
 }
 
 // ========== ABA MÊS ==========
@@ -2023,6 +2053,7 @@ function renderMes(){
   const mOrd=mData.reduce((s,r)=>s+nn(r.orders),0);
   const mDelOrd=mData.reduce((s,r)=>s+nn(r.delOrd),0);
   const mUberOrd=mData.reduce((s,r)=>s+nn(r.uberOrd),0);
+  const mJustOrd=mData.reduce((s,r)=>s+nn(r.justOrd),0);
   const mDias=mData.length;
   const mFh=mH>0?mRec/mH:NaN;
   const mFp=mOrd>0?mRec/mOrd:NaN;
@@ -2114,10 +2145,14 @@ function renderMes(){
   setK('m-ord','m-ord-d',mOrdAvg,pOrdAvg,v=>isNaN(v)||v===0?'—':v.toFixed(1)+'/dia');
   if(mOrd>0){
     addKitemSub(document.getElementById('m-ord'),'total: '+Math.round(mOrd)+' ped');
-    if(mDelOrd>0||mUberOrd>0){
+    if(mDelOrd>0||mUberOrd>0||mJustOrd>0){
       const subEl2=document.createElement('div');
       subEl2.style.cssText='font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)';
-      subEl2.textContent=`Del: ${Math.round(mDelOrd)} · Uber: ${Math.round(mUberOrd)}`;
+      const parts2=[];
+      if(mDelOrd>0) parts2.push(`Del: ${Math.round(mDelOrd)}`);
+      if(mUberOrd>0) parts2.push(`Uber: ${Math.round(mUberOrd)}`);
+      if(mJustOrd>0) parts2.push(`Just: ${Math.round(mJustOrd)}`);
+      subEl2.textContent=parts2.join(' · ');
       document.getElementById('m-ord').parentElement.appendChild(subEl2);
     }
   }
@@ -2241,6 +2276,7 @@ function renderMes(){
     const tipscash=daysInRange.reduce((s,r)=>s+Math.abs(nn(r.tipscash)),0);
     const delTips=daysInRange.reduce((s,r)=>s+nn(r.delTips),0);
     const uberTips=daysInRange.reduce((s,r)=>s+nn(r.uberTips),0);
+    const justTips=daysInRange.reduce((s,r)=>s+nn(r.justTips),0);
     const liq=rec-bike-rentDel-rentUber+tipscash;
     const fhBruto=horas>0?rec/horas:null;
     const fhLiq=horas>0?liq/horas:null;
@@ -2250,7 +2286,7 @@ function renderMes(){
       label, monday:new Date(cur), hasData,
       receita:rec, liquido:liq, horas, km, orders, dias,
       bike, rentDel, rentUber, tipscash,
-      delTips, uberTips, fhBruto, fhLiq,
+      delTips, uberTips, justTips, fhBruto, fhLiq,
       weekStart:new Date(weekStart), weekEnd:new Date(weekEnd)
     });
     cur=new Date(cur.getTime()+7*864e5);
@@ -2385,7 +2421,10 @@ function renderMes(){
   // mCashTips já definido acima
   const mDelTotal=mData.reduce((s,r)=>s+nn(r.delTotal),0);
   const mUberTotal=mData.reduce((s,r)=>s+nn(r.uberTotal),0);
-  // mDelOrd, mUberOrd já definidos no início de renderMes
+  const mJustOF=mData.reduce((s,r)=>s+nn(r.justOF),0);
+  const mJustTips=mData.reduce((s,r)=>s+nn(r.justTips),0);
+  const mJustTotal=mData.reduce((s,r)=>s+nn(r.justTotal),0);
+  // mDelOrd, mUberOrd, mJustOrd já definidos no início de renderMes
   // mBike, mRentDel, mRentUber já definidos no início de renderMes
 
   const mParts=[
@@ -2394,6 +2433,8 @@ function renderMes(){
     {lbl:'Deliveroo tips',val:mDelTips,color:C.blueDel3},
     {lbl:'Uber order fee',val:mUberOF,color:C.greenUber1},
     {lbl:'Uber tips',val:mUberTips,color:C.greenUber2},
+    {lbl:'Just Eat order fee',val:mJustOF,color:C.orangeJust1},
+    {lbl:'Just Eat tips',val:mJustTips,color:C.orangeJust2},
     {lbl:'Tips cash',val:mCashTips,color:GRAY_MED},
   ].filter(p=>p.val>0);
   const mGroups=[
@@ -2406,14 +2447,19 @@ function renderMes(){
       {lbl:'Order fee',val:mUberOF,  color:C.greenUber1},
       {lbl:'Tips app', val:mUberTips,color:C.greenUber2},
     ]},
+    {name:'Just Eat',color:C.orangeJust1,total:mJustOF+mJustTips,subs:[
+      {lbl:'Order fee',val:mJustOF,  color:C.orangeJust1},
+      {lbl:'Tips app', val:mJustTips,color:C.orangeJust2},
+    ]},
   ];
   if(mTotalComp>0) renderComposeDonut('m-compose','m-compose-legend','m-compose-center',mParts,mTotalComp,mGroups,[{lbl:'Tips cash',val:mCashTips,color:GRAY_MED}]);
 
   // Breakdown por plataforma
   const sm=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  const mPlatTotal=mDelTotal+mUberTotal;
+  const mPlatTotal=mDelTotal+mUberTotal+mJustTotal;
   const mDelPct=mPlatTotal>0?(mDelTotal/mPlatTotal*100).toFixed(0):'—';
   const mUberPct=mPlatTotal>0?(mUberTotal/mPlatTotal*100).toFixed(0):'—';
+  const mJustPct=mPlatTotal>0?(mJustTotal/mPlatTotal*100).toFixed(0):'—';
   const mpOf=(v,base)=>base>0?' · '+(v/base*100).toFixed(0)+'%':'';
   sm('m-del-total',fe(mDelTotal)+(mPlatTotal>0?' · '+mDelPct+'%':''));
   sm('m-del-of',fe(mDelOF)+mpOf(mDelOF,mDelTotal));
@@ -2424,6 +2470,10 @@ function renderMes(){
   sm('m-uber-of',fe(mUberOF)+mpOf(mUberOF,mUberTotal));
   sm('m-uber-tips',fe(mUberTips)+mpOf(mUberTips,mUberTotal));
   sm('m-uber-ord',Math.round(mUberOrd)+'');
+  sm('m-just-total',fe(mJustTotal)+(mPlatTotal>0?' · '+mJustPct+'%':''));
+  sm('m-just-of',fe(mJustOF)+mpOf(mJustOF,mJustTotal));
+  sm('m-just-tips',fe(mJustTips)+mpOf(mJustTips,mJustTotal));
+  sm('m-just-ord',Math.round(mJustOrd)+'');
 
   // Descontos e líquido
   renderDeducts('m-deducts',mBike,mRentDel,mRentUber,mCashTips,mLiq,null);
@@ -2433,9 +2483,10 @@ function renderMes(){
   const mTipsLabels=allMonWeeks.map(w=>w.label);
   const mWDelTips=allMonWeeks.map(w=>parseFloat(w.delTips.toFixed(2)));
   const mWUberTips=allMonWeeks.map(w=>parseFloat(w.uberTips.toFixed(2)));
+  const mWJustTips=allMonWeeks.map(w=>parseFloat(w.justTips.toFixed(2)));
   const mWCash=allMonWeeks.map(w=>parseFloat(w.tipscash.toFixed(2)));
   const mWTotals=allMonWeeks.map(w=>parseFloat(w.receita.toFixed(2)));
-  renderTipsChart('m-tips-chart',mTipsLabels,mWDelTips,mWUberTips,mWCash,mWTotals);
+  renderTipsChart('m-tips-chart',mTipsLabels,mWDelTips,mWUberTips,mWJustTips,mWCash,mWTotals);
 }
 
 // ========== ABA HISTÓRICO ==========
@@ -2449,6 +2500,7 @@ function renderHistorico(){
   totalOrd=gW.reduce((s,w)=>s+(w.orders>0?w.orders:0),0);
   const hiDelOrd=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.delOrd),0);
   const hiUberOrd=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.uberOrd),0);
+  const hiJustOrd=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justOrd),0);
   // Km: só semanas com km preenchido
   const wWithKm=gW.filter(w=>!isNaN(w.km)&&w.km>0);
   const totalKm=wWithKm.reduce((s,w)=>s+w.km,0);
@@ -2509,10 +2561,14 @@ function renderHistorico(){
   setHi('hi-ord',hiOrdAvg,v=>isNaN(v)||v===0?'—':v.toFixed(1)+'/dia');
   if(totalOrd>0){
     addKitemSub(document.getElementById('hi-ord'),'total: '+Math.round(totalOrd)+' ped');
-    if(hiDelOrd>0||hiUberOrd>0){
+    if(hiDelOrd>0||hiUberOrd>0||hiJustOrd>0){
       const subEl2=document.createElement('div');
       subEl2.style.cssText='font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono)';
-      subEl2.textContent=`Del: ${Math.round(hiDelOrd)} · Uber: ${Math.round(hiUberOrd)}`;
+      const hparts=[];
+      if(hiDelOrd>0) hparts.push(`Del: ${Math.round(hiDelOrd)}`);
+      if(hiUberOrd>0) hparts.push(`Uber: ${Math.round(hiUberOrd)}`);
+      if(hiJustOrd>0) hparts.push(`Just: ${Math.round(hiJustOrd)}`);
+      subEl2.textContent=hparts.join(' · ');
       document.getElementById('hi-ord').parentElement.appendChild(subEl2);
     }
   }
@@ -2539,7 +2595,7 @@ function renderHistorico(){
   gRaw.filter(r=>r.worked).forEach(r=>{
     const mkey=r.date.getFullYear()+'-'+String(r.date.getMonth()+1).padStart(2,'0');
     if(!monthMap[mkey]) monthMap[mkey]={rec:0,liq:0,horas:0,orders:0,dias:0,km:0,
-      bike:0,rentDel:0,rentUber:0,tipscash:0,delivRev:0,uberRev:0};
+      bike:0,rentDel:0,rentUber:0,tipscash:0,delivRev:0,uberRev:0,justRev:0};
     monthMap[mkey].rec+=nn(r.total);
     monthMap[mkey].liq+=nn(r.liquido);
     monthMap[mkey].horas+=nn(r.horas);
@@ -2549,6 +2605,7 @@ function renderHistorico(){
     monthMap[mkey].tipscash+=Math.abs(nn(r.tipscash));
     monthMap[mkey].delivRev+=nn(r.delTotal);
     monthMap[mkey].uberRev+=nn(r.uberTotal);
+    monthMap[mkey].justRev+=nn(r.justTotal);
   });
   // Descontos: todos os dias (trabalhados e não trabalhados)
   gRaw.forEach(r=>{
@@ -2566,6 +2623,7 @@ function renderHistorico(){
   // Gráfico 1: Receita por plataforma mês a mês + linha acumulado
   const monthDeliv=monthKeys.map(k=>parseFloat(monthMap[k].delivRev.toFixed(2)));
   const monthUber=monthKeys.map(k=>parseFloat(monthMap[k].uberRev.toFixed(2)));
+  const monthJust=monthKeys.map(k=>parseFloat(monthMap[k].justRev.toFixed(2)));
   const monthTipsCash=monthKeys.map(k=>parseFloat(monthMap[k].tipscash.toFixed(2)));
   let accR=0;
   const monthAccLine=monthRec.map(v=>{accR+=v;return parseFloat(accR.toFixed(2));});
@@ -2576,6 +2634,9 @@ function renderHistorico(){
         borderWidth:1,borderRadius:2,stack:'rev',order:3},
       {label:'Uber Eats',data:monthUber,
         backgroundColor:'rgba(29,164,55,0.75)',borderColor:'rgba(29,164,55,1)',
+        borderWidth:1,borderRadius:2,stack:'rev',order:3},
+      {label:'Just Eat',data:monthJust,
+        backgroundColor:'rgba(249,115,22,0.75)',borderColor:'rgba(249,115,22,1)',
         borderWidth:1,borderRadius:2,stack:'rev',order:3},
       {label:'Tips cash',data:monthTipsCash,
         backgroundColor:'rgba(139,148,158,0.6)',borderColor:GRAY_MED,
@@ -2699,10 +2760,13 @@ function renderHistorico(){
   const hiDelTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.delTips),0);
   const hiUberOF=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.uberOF),0);
   const hiUberTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.uberTips),0);
+  const hiJustOF=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justOF),0);
+  const hiJustTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justTips),0);
+  const hiJustTotal=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justTotal),0);
   const hiCashTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.tipscash),0);
   const hiDelTotal=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.delTotal),0);
   const hiUberTotal=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.uberTotal),0);
-  // hiDelOrd, hiUberOrd já definidos no início de renderHistorico
+  // hiDelOrd, hiUberOrd, hiJustOrd já definidos no início de renderHistorico
   const hiBike=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.bike),0);
   const hiRentDel=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.rentDel),0);
   const hiRentUber=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.rentUber),0);
@@ -2713,6 +2777,8 @@ function renderHistorico(){
     {lbl:'Deliveroo tips',val:hiDelTips,color:C.blueDel3},
     {lbl:'Uber order fee',val:hiUberOF,color:C.greenUber1},
     {lbl:'Uber tips',val:hiUberTips,color:C.greenUber2},
+    {lbl:'Just Eat order fee',val:hiJustOF,color:C.orangeJust1},
+    {lbl:'Just Eat tips',val:hiJustTips,color:C.orangeJust2},
     {lbl:'Tips cash',val:hiCashTips,color:GRAY_MED},
   ].filter(p=>p.val>0);
   const hiGroups=[
@@ -2725,14 +2791,19 @@ function renderHistorico(){
       {lbl:'Order fee',val:hiUberOF,  color:C.greenUber1},
       {lbl:'Tips app', val:hiUberTips,color:C.greenUber2},
     ]},
+    {name:'Just Eat',color:C.orangeJust1,total:hiJustOF+hiJustTips,subs:[
+      {lbl:'Order fee',val:hiJustOF,  color:C.orangeJust1},
+      {lbl:'Tips app', val:hiJustTips,color:C.orangeJust2},
+    ]},
   ];
   if(totalRec>0) renderComposeDonut('hi-compose','hi-compose-legend','hi-compose-center',hiParts,totalRec,hiGroups,[{lbl:'Tips cash',val:hiCashTips,color:GRAY_MED}]);
 
   // Breakdown plataformas
   const sh=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  const hiPlatTotal=hiDelTotal+hiUberTotal;
+  const hiPlatTotal=hiDelTotal+hiUberTotal+hiJustTotal;
   const hiDelPct=hiPlatTotal>0?(hiDelTotal/hiPlatTotal*100).toFixed(0):'—';
   const hiUberPct=hiPlatTotal>0?(hiUberTotal/hiPlatTotal*100).toFixed(0):'—';
+  const hiJustPct=hiPlatTotal>0?(hiJustTotal/hiPlatTotal*100).toFixed(0):'—';
   const hpOf=(v,base)=>base>0?' · '+(v/base*100).toFixed(0)+'%':'';
   sh('hi-del-total',fe(hiDelTotal)+(hiPlatTotal>0?' · '+hiDelPct+'%':''));
   sh('hi-del-of',fe(hiDelOF)+hpOf(hiDelOF,hiDelTotal));
@@ -2743,6 +2814,10 @@ function renderHistorico(){
   sh('hi-uber-of',fe(hiUberOF)+hpOf(hiUberOF,hiUberTotal));
   sh('hi-uber-tips',fe(hiUberTips)+hpOf(hiUberTips,hiUberTotal));
   sh('hi-uber-ord',Math.round(hiUberOrd)+'');
+  sh('hi-just-total',fe(hiJustTotal)+(hiPlatTotal>0?' · '+hiJustPct+'%':''));
+  sh('hi-just-of',fe(hiJustOF)+hpOf(hiJustOF,hiJustTotal));
+  sh('hi-just-tips',fe(hiJustTips)+hpOf(hiJustTips,hiJustTotal));
+  sh('hi-just-ord',Math.round(hiJustOrd)+'');
 
   // Descontos histórico
   renderDeducts('hi-deducts',hiBike,hiRentDel,hiRentUber,hiCashTips,totalLiq,null);
@@ -2753,12 +2828,12 @@ function renderHistorico(){
   const dowLabels=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 
   // Acumuladores por dia da semana (só dias trabalhados)
-  const dowRec={},dowH={},dowDelTips={},dowUberTips={},dowCash={},dowCnt={};
-  dowOrder.forEach(d=>{dowRec[d]=0;dowH[d]=0;dowDelTips[d]=0;dowUberTips[d]=0;dowCash[d]=0;dowCnt[d]=0;});
+  const dowRec={},dowH={},dowDelTips={},dowUberTips={},dowJustTips={},dowCash={},dowCnt={};
+  dowOrder.forEach(d=>{dowRec[d]=0;dowH[d]=0;dowDelTips[d]=0;dowUberTips[d]=0;dowJustTips[d]=0;dowCash[d]=0;dowCnt[d]=0;});
   gRaw.filter(r=>r.worked).forEach(r=>{
     const d=r.date.getDay();
     dowRec[d]+=nn(r.total);dowH[d]+=nn(r.horas);
-    dowDelTips[d]+=nn(r.delTips);dowUberTips[d]+=nn(r.uberTips);dowCash[d]+=nn(r.tipscash);
+    dowDelTips[d]+=nn(r.delTips);dowUberTips[d]+=nn(r.uberTips);dowJustTips[d]+=nn(r.justTips);dowCash[d]+=nn(r.tipscash);
     dowCnt[d]++;
   });
 
@@ -2804,9 +2879,10 @@ function renderHistorico(){
   // Gráfico 3: Tips médios por dia (empilhado + linha %)
   const avgDelTipsDow=dowOrder.map(d=>dowCnt[d]>0?parseFloat((dowDelTips[d]/dowCnt[d]).toFixed(2)):0);
   const avgUberTipsDow=dowOrder.map(d=>dowCnt[d]>0?parseFloat((dowUberTips[d]/dowCnt[d]).toFixed(2)):0);
+  const avgJustTipsDow=dowOrder.map(d=>dowCnt[d]>0?parseFloat((dowJustTips[d]/dowCnt[d]).toFixed(2)):0);
   const avgCashDow=dowOrder.map(d=>dowCnt[d]>0?parseFloat((dowCash[d]/dowCnt[d]).toFixed(2)):0);
   const avgRecForTips=dowOrder.map(d=>dowCnt[d]>0?dowRec[d]/dowCnt[d]:0);
-  renderTipsChart('hist-dow-tips',dowLabels,avgDelTipsDow,avgUberTipsDow,avgCashDow,avgRecForTips);
+  renderTipsChart('hist-dow-tips',dowLabels,avgDelTipsDow,avgUberTipsDow,avgJustTipsDow,avgCashDow,avgRecForTips);
 
   // Tabela
   buildHistTable();
