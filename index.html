@@ -3167,19 +3167,19 @@ function calcDiagnostico(liquido,liqHora,horas){
   // TODO: contexto de feriado/evento — backlog, sem dado disponível no dashboard atual
   // Matriz resultado × eficiência (estados 3–11)
   if(liquido>=100){
-    if(lh>=16) return{cls:'green',titulo:'🔥 Dia forte',frase:'Esse dia valeu a pena.',insight:'Bom total e boa eficiência no dia.'};
-    if(lh>=13) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Esse dia valeu a pena, mas exigiu bastante esforço.',insight:'O ganho por hora ficou abaixo do ideal.'};
-    return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:'O ganho por hora ficou baixo nesse dia. Trabalhar mais horas ou escolher horários melhores pode ajudar a diluir os custos.'};
+    if(lh>=16) return{cls:'green',titulo:'🔥 Dia forte',frase:'Esse dia valeu a pena.',insight:''};
+    if(lh>=13) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Esse dia valeu a pena, mas exigiu bastante esforço.',insight:''};
+    return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:''};
   }
   if(liquido>=80){
-    if(lh>=16) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, e o total ficou ok.',insight:''};
-    if(lh>=13) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Dia ok.',insight:'Resultado dentro do esperado para o dia.'};
-    return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:'O ganho por hora ficou abaixo do ideal.'};
+    if(lh>=16) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, e o total ficou ok.',insight:''};
+    if(lh>=13) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Dia ok.',insight:''};
+    return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:''};
   }
   // liquido < 80
-  if(lh>=16) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, mas sobrou pouco no total.',insight:''};
-  if(lh>=13) return{cls:'amber',titulo:'⚠️ Dia fraco',frase:'Esse dia não valeu muito a pena.',insight:'Resultado baixo para o tempo trabalhado.'};
-  return{cls:'red',titulo:'🔴 Dia fraco',frase:'Esse dia não valeu a pena.',insight:'O ganho por hora ficou abaixo do ideal.'};
+  if(lh>=16) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, mas sobrou pouco no total.',insight:''};
+  if(lh>=13) return{cls:'amber',titulo:'⚠️ Abaixo do ideal',frase:'O ganho por hora ficou abaixo do ideal.',insight:''};
+  return{cls:'amber',titulo:'⚠️ Abaixo do ideal',frase:'O ganho por hora ficou abaixo do ideal.',insight:''};
 }
 
 function renderResumo(){
@@ -3215,7 +3215,16 @@ function renderResumo(){
   if(fraseEl) fraseEl.textContent=diag.frase;
 
   if(insEl){
-    if(diag.insight){insEl.textContent=diag.insight;insEl.style.display='';}
+    const lhStr=!isNaN(liqHora)?'€'+liqHora.toFixed(2)+'/h':'—';
+    let insightText='';
+    if(liquido<0){
+      insightText='Você fez €'+bruto.toFixed(2)+', mas os descontos passaram a receita do dia. Em '+horas.toFixed(1)+'h, o resultado líquido ficou em -€'+Math.abs(liquido).toFixed(2)+'.';
+    } else if(descontos<=0){
+      insightText='Você fez €'+bruto.toFixed(2)+' e não houve descontos registrados nesse dia. Em '+horas.toFixed(1)+'h, o ganho líquido ficou em '+lhStr+'.';
+    } else {
+      insightText='Você fez €'+bruto.toFixed(2)+', mas sobraram €'+liquido.toFixed(2)+' depois dos descontos. Em '+horas.toFixed(1)+'h, o ganho líquido ficou em '+lhStr+'.';
+    }
+    if(insightText){insEl.textContent=insightText;insEl.style.display='';}
     else{insEl.textContent='';insEl.style.display='none';}
   }
 
@@ -3223,19 +3232,13 @@ function renderResumo(){
   if(bruEl) bruEl.textContent='€'+bruto.toFixed(2);
 
   const liqEl=document.getElementById('sv-liquido');
-  if(liqEl){
-    liqEl.textContent=liquido>=0?'€'+liquido.toFixed(2):'−€'+Math.abs(liquido).toFixed(2);
-    liqEl.style.color=liquido>=100?'var(--green)':liquido>=80?'var(--amber)':'var(--red)';
-  }
+  if(liqEl) liqEl.textContent=liquido>=0?'€'+liquido.toFixed(2):'−€'+Math.abs(liquido).toFixed(2);
 
   const bhEl=document.getElementById('sv-bruto-hora');
   if(bhEl) bhEl.textContent=!isNaN(brutoHora)?'€'+brutoHora.toFixed(2):'—';
 
   const lhEl=document.getElementById('sv-liq-hora');
-  if(lhEl){
-    lhEl.textContent=!isNaN(liqHora)?'€'+liqHora.toFixed(2):'—';
-    lhEl.style.color=!isNaN(liqHora)?(liqHora>=16?'var(--green)':liqHora>=13?'var(--amber)':'var(--red)'):'';
-  }
+  if(lhEl) lhEl.textContent=!isNaN(liqHora)?'€'+liqHora.toFixed(2):'—';
 
   const hEl=document.getElementById('sv-horas');
   if(hEl) hEl.textContent=horas>0?horas.toFixed(1)+'h':'—';
