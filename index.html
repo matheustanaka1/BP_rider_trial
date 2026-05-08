@@ -462,16 +462,20 @@ table.show-deltas tbody td.delta-col{display:table-cell;}
         <div class="sv-metric-lbl">Sobrou</div>
       </div>
       <div class="sv-metric-item">
-        <div class="sv-metric-val" id="sv-custos">—</div>
-        <div class="sv-metric-lbl">Custos</div>
+        <div class="sv-metric-val" id="sv-bruto-hora">—</div>
+        <div class="sv-metric-lbl">€/h bruto</div>
       </div>
       <div class="sv-metric-item">
         <div class="sv-metric-val" id="sv-liq-hora">—</div>
         <div class="sv-metric-lbl">€/h líquido</div>
       </div>
-      <div class="sv-metric-item wide">
+      <div class="sv-metric-item">
         <div class="sv-metric-val" id="sv-horas">—</div>
         <div class="sv-metric-lbl">Horas trabalhadas</div>
+      </div>
+      <div class="sv-metric-item">
+        <div class="sv-metric-val" id="sv-descontos">—</div>
+        <div class="sv-metric-lbl">Descontos</div>
       </div>
     </div>
 
@@ -3189,7 +3193,7 @@ function renderResumo(){
     if(statusEl){statusEl.textContent='Sem trabalho registrado';statusEl.className='sv-status neutral';}
     if(fraseEl) fraseEl.textContent=msg||'Não há trabalho registrado nesse dia.';
     if(insEl){insEl.textContent='';insEl.style.display='none';}
-    ['sv-bruto','sv-liquido','sv-custos','sv-liq-hora','sv-horas'].forEach(function(id){
+    ['sv-bruto','sv-liquido','sv-bruto-hora','sv-liq-hora','sv-horas','sv-descontos'].forEach(function(id){
       const el=document.getElementById(id);if(el){el.textContent='—';el.style.color='';}
     });
   }
@@ -3202,7 +3206,8 @@ function renderResumo(){
   if(!r||(!bruto&&!horas)){svReset();return;}
 
   const liquido=nn(r.liquido);
-  const custos=bruto-liquido;
+  const descontos=bruto-liquido;
+  const brutoHora=horas>0?bruto/horas:NaN;
   const liqHora=horas>0?liquido/horas:NaN;
   const diag=calcDiagnostico(liquido,liqHora,horas);
 
@@ -3223,8 +3228,8 @@ function renderResumo(){
     liqEl.style.color=liquido>=100?'var(--green)':liquido>=80?'var(--amber)':'var(--red)';
   }
 
-  const cusEl=document.getElementById('sv-custos');
-  if(cusEl) cusEl.textContent='€'+custos.toFixed(2);
+  const bhEl=document.getElementById('sv-bruto-hora');
+  if(bhEl) bhEl.textContent=!isNaN(brutoHora)?'€'+brutoHora.toFixed(2):'—';
 
   const lhEl=document.getElementById('sv-liq-hora');
   if(lhEl){
@@ -3234,6 +3239,9 @@ function renderResumo(){
 
   const hEl=document.getElementById('sv-horas');
   if(hEl) hEl.textContent=horas>0?horas.toFixed(1)+'h':'—';
+
+  const desEl=document.getElementById('sv-descontos');
+  if(desEl) desEl.textContent=descontos>0?'−€'+descontos.toFixed(2):'—';
 }
 
 window.addEventListener('load',function(){
