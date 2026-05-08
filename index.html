@@ -43,6 +43,8 @@
   --gold:#eab308;            /* tips cash */
   --orange-just1:#f97316;    /* just eat order fee */
   --orange-just2:#fb923c;    /* just eat tips */
+  --orange-just3:#fdba74;    /* just eat bonus */
+  --orange-just4:#fde68a;    /* just eat reimbursements */
 
   /* Semi-transparent variants */
   --gdim:rgba(57,211,83,0.1);
@@ -397,6 +399,29 @@ table.show-deltas tbody td.delta-col{display:table-cell;}
   .wmetrics{grid-template-columns:1fr;}
   .mstats{grid-template-columns:1fr;}
 }
+
+/* ==================== SIMPLE VIEW (.sv-*) ==================== */
+.sv-hero{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px 16px 18px;margin-bottom:12px;text-align:center;}
+.sv-label{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text3);margin-bottom:14px;}
+.sv-status{font-size:21px;font-weight:700;margin-bottom:8px;letter-spacing:-.3px;line-height:1.2;}
+.sv-status.green{color:var(--green);}
+.sv-status.red{color:var(--red);}
+.sv-status.amber{color:var(--amber);}
+.sv-status.neutral{color:var(--text3);}
+.sv-frase{font-size:14px;color:var(--text2);font-weight:500;line-height:1.4;}
+.sv-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.sv-metric-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 10px;text-align:center;}
+.sv-metric-item.wide{grid-column:1/-1;}
+.sv-metric-val{font-size:19px;font-weight:700;font-family:var(--mono);color:var(--text);
+  margin-bottom:3px;}
+.sv-metric-lbl{font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.04em;}
+.sv-insight{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);
+  padding:11px 14px;font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:12px;}
+.sv-no-data{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:28px 16px;text-align:center;color:var(--text3);font-size:14px;}
 </style>
 </head>
 <body>
@@ -412,12 +437,54 @@ table.show-deltas tbody td.delta-col{display:table-cell;}
   <button class="rbtn" id="rbtn" onclick="loadData()"><span class="sp" id="sp">↻</span> Atualizar</button>
 </div>
 
+<!-- ============ ABA RESUMO ============ -->
+<div class="view on" id="view-resumo">
+  <div class="eb" id="err-resumo"></div>
+  <div class="sel-row">
+    <span class="sel-lbl">📅 Dia</span>
+    <select class="sel" id="resumo-day-sel" onchange="onResumoSelChange()"></select>
+  </div>
+
+  <div id="sv-content">
+    <div class="sv-hero">
+      <div class="sv-label">Seu dia valeu a pena?</div>
+      <div class="sv-status neutral" id="sv-status">—</div>
+      <div class="sv-frase" id="sv-frase">Carregue os dados para ver o diagnóstico.</div>
+    </div>
+
+    <div class="sv-metrics">
+      <div class="sv-metric-item">
+        <div class="sv-metric-val" id="sv-bruto">—</div>
+        <div class="sv-metric-lbl">Você fez</div>
+      </div>
+      <div class="sv-metric-item">
+        <div class="sv-metric-val" id="sv-liquido">—</div>
+        <div class="sv-metric-lbl">Sobrou</div>
+      </div>
+      <div class="sv-metric-item">
+        <div class="sv-metric-val" id="sv-custos">—</div>
+        <div class="sv-metric-lbl">Custos</div>
+      </div>
+      <div class="sv-metric-item">
+        <div class="sv-metric-val" id="sv-liq-hora">—</div>
+        <div class="sv-metric-lbl">€/h líquido</div>
+      </div>
+      <div class="sv-metric-item wide">
+        <div class="sv-metric-val" id="sv-horas">—</div>
+        <div class="sv-metric-lbl">Horas trabalhadas</div>
+      </div>
+    </div>
+
+    <div class="sv-insight" id="sv-insight"></div>
+  </div>
+</div>
+
 <!-- ============ ABA DIÁRIO ============ -->
-<div class="view on" id="view-diario">
+<div class="view" id="view-diario">
   <div class="eb" id="err-diario"></div>
   <div class="sel-row">
     <span class="sel-lbl">📅 Dia</span>
-    <select class="sel" id="day-sel" onchange="renderDiario()"></select>
+    <select class="sel" id="day-sel" onchange="onDaySelChange()"></select>
   </div>
 
   <div class="hero">
@@ -838,7 +905,8 @@ table.show-deltas tbody td.delta-col{display:table-cell;}
 </div>
 
 <nav class="tabs">
-  <button class="tab on" onclick="showView('diario',this)"><div class="tab-icon">📅</div>Diário</button>
+  <button class="tab on" onclick="showView('resumo',this)"><div class="tab-icon">🏠</div>Resumo</button>
+  <button class="tab" onclick="showView('diario',this)"><div class="tab-icon">📅</div>Diário</button>
   <button class="tab" onclick="showView('semana',this)"><div class="tab-icon">📊</div>Semanal</button>
   <button class="tab" onclick="showView('mes',this)"><div class="tab-icon">📆</div>Mensal</button>
   <button class="tab" onclick="showView('hist',this)"><div class="tab-icon">📋</div>Histórico</button>
@@ -860,7 +928,7 @@ const C={
   green:'#39d353',greenDk:'#2da44e',red:'#f85149',wine:'#8b1a2f',
   blue:'#58a6ff',blueDel1:'#0969da',blueDel2:'#58a6ff',blueDel3:'#a5d6ff',
   greenUber1:'#1a7f37',greenUber2:'#2da44e',
-  orangeJust1:'#f97316',orangeJust2:'#fb923c',
+  orangeJust1:'#f97316',orangeJust2:'#fb923c',orangeJust3:'#fdba74',orangeJust4:'#fde68a',
   amber:'#f59e0b',purple:'#bc8cff',gold:'#eab308',
   text2:'#8b949e',text3:'#6e7781',text4:'#484f58'
 };
@@ -1014,6 +1082,7 @@ function showView(id,btn){
   document.getElementById('view-'+id).classList.add('on');
   btn.classList.add('on');
   if(gW.length){
+    if(id==='resumo') renderResumo();
     if(id==='semana') renderSemana();
     if(id==='mes') renderMes();
     if(id==='hist') renderHistorico();
@@ -1065,7 +1134,7 @@ function processGviz(resp){
   const COL_NAMES={
     data:'data',total:'total receita',totalOrders:'total orders',tipscash:'tips cash',
     uberTotal:'uber eats total',uberOF:'uber eats order fee',uberTips:'uber eats tips',uberOrd:'uber eats n orders',
-    justTotal:'just eat total',justOF:'just eat order fee',justTips:'just eat tips',justOrd:'just eat n orders',
+    justTotal:'just eat total',justOF:'just eat order fee',justBonus:'just eat bonus',justReimbursements:'just eat reimbursements',justTips:'just eat tips',justOrd:'just eat n orders',
     delTotal:'deliveroo total',delOF:'deliveroo order fee',delEF:'deliveroo extras fee',
     delTips:'deliveroo tips',delOrd:'deliveroo n orders',
     feehora:'fee/hora',ordershora:'orders/hora',horas:'horas totais',km:'km totais',
@@ -1103,6 +1172,7 @@ function processGviz(resp){
       uberTotal:pn(cv(row,'uberTotal')),uberOF:pn(cv(row,'uberOF')),
       uberTips:pn(cv(row,'uberTips')),uberOrd:pn(cv(row,'uberOrd')),
       justTotal:pn(cv(row,'justTotal')),justOF:pn(cv(row,'justOF')),
+      justBonus:pn(cv(row,'justBonus')),justReimbursements:pn(cv(row,'justReimbursements')),
       justTips:pn(cv(row,'justTips')),justOrd:pn(cv(row,'justOrd')),
       delTotal:pn(cv(row,'delTotal')),delOF:pn(cv(row,'delOF')),
       delEF:pn(cv(row,'delEF')),delTips:pn(cv(row,'delTips')),
@@ -1128,7 +1198,7 @@ function processGviz(resp){
         delivRev:0,uberRev:0,justRev:0,
         delOF:0,delEF:0,delTips:0,delOrd:0,
         uberOF:0,uberTips:0,uberOrd:0,
-        justOF:0,justTips:0,justOrd:0,
+        justOF:0,justBonus:0,justReimbursements:0,justTips:0,justOrd:0,
         tipscash:0,bike:0,rentDel:0,rentUber:0,
         days:[]});
     }
@@ -1140,7 +1210,7 @@ function processGviz(resp){
     w.delivRev+=nn(r.delTotal);w.uberRev+=nn(r.uberTotal);w.justRev+=nn(r.justTotal);
     w.delOF+=nn(r.delOF);w.delEF+=nn(r.delEF);w.delTips+=nn(r.delTips);w.delOrd+=nn(r.delOrd);
     w.uberOF+=nn(r.uberOF);w.uberTips+=nn(r.uberTips);w.uberOrd+=nn(r.uberOrd);
-    w.justOF+=nn(r.justOF);w.justTips+=nn(r.justTips);w.justOrd+=nn(r.justOrd);
+    w.justOF+=nn(r.justOF);w.justBonus+=nn(r.justBonus);w.justReimbursements+=nn(r.justReimbursements);w.justTips+=nn(r.justTips);w.justOrd+=nn(r.justOrd);
     w.tipscash+=nn(r.tipscash);
     w.days.push(r);
   }
@@ -1184,7 +1254,7 @@ function processGviz(resp){
   populateWeekSelector();
   populateMonthSelector();
 
-  waitChart(()=>{renderDiario();});
+  waitChart(()=>{renderResumo();renderDiario();});
 }
 
 function waitChart(fn,n){
@@ -1212,6 +1282,8 @@ function populateDaySelector(){
     sel.appendChild(opt);
   }
   if(worked.length>0) sel.value=worked[0].dateKey||localDateKey(worked[0].date);
+  const rsel=document.getElementById('resumo-day-sel');
+  if(rsel){rsel.innerHTML=sel.innerHTML;if(sel.value) rsel.value=sel.value;}
 }
 
 function populateWeekSelector(){
@@ -1414,8 +1486,10 @@ function renderDiarioCompose(r, hasData, total){
     {lbl:'Deliveroo tips',       val:nn(r.delTips), color:C.blueDel3},
     {lbl:'Uber order fee',       val:nn(r.uberOF), color:C.greenUber1},
     {lbl:'Uber tips',            val:nn(r.uberTips), color:C.greenUber2},
-    {lbl:'Just Eat order fee',   val:nn(r.justOF), color:C.orangeJust1},
-    {lbl:'Just Eat tips',        val:nn(r.justTips), color:C.orangeJust2},
+    {lbl:'Just Eat order fee',      val:nn(r.justOF),             color:C.orangeJust1},
+    {lbl:'Just Eat bonus',          val:nn(r.justBonus),          color:C.orangeJust3},
+    {lbl:'Just Eat reimbursements', val:nn(r.justReimbursements), color:C.orangeJust4},
+    {lbl:'Just Eat tips',           val:nn(r.justTips),           color:C.orangeJust2},
     {lbl:'Tips cash',            val:nn(r.tipscash), color:GRAY_MED},
   ].filter(p=>p.val>0);
 
@@ -1427,7 +1501,7 @@ function renderDiarioCompose(r, hasData, total){
   // Legenda agrupada por plataforma
   const delTotal=nn(r.delOF)+nn(r.delEF)+nn(r.delTips);
   const uberTotal=nn(r.uberOF)+nn(r.uberTips);
-  const justTotalD=nn(r.justOF)+nn(r.justTips);
+  const justTotalD=nn(r.justOF)+nn(r.justBonus)+nn(r.justReimbursements)+nn(r.justTips);
   buildGroupedLegend(legEl,
     [
       {name:'Deliveroo', color:C.blueDel1, total:delTotal, subs:[
@@ -1440,8 +1514,10 @@ function renderDiarioCompose(r, hasData, total){
         {lbl:'Tips app',  val:nn(r.uberTips), color:C.greenUber2},
       ]},
       {name:'Just Eat', color:C.orangeJust1, total:justTotalD, subs:[
-        {lbl:'Order fee', val:nn(r.justOF),   color:C.orangeJust1},
-        {lbl:'Tips app',  val:nn(r.justTips), color:C.orangeJust2},
+        {lbl:'Order fee',      val:nn(r.justOF),             color:C.orangeJust1},
+        {lbl:'Bonus',          val:nn(r.justBonus),          color:C.orangeJust3},
+        {lbl:'Reimbursements', val:nn(r.justReimbursements), color:C.orangeJust4},
+        {lbl:'Tips app',       val:nn(r.justTips),           color:C.orangeJust2},
       ]},
     ],
     [{lbl:'Tips cash', val:nn(r.tipscash), color:GRAY_MED}],
@@ -1969,13 +2045,15 @@ function renderSemana(){
     {lbl:'Deliveroo tips',val:nn(curr.delTips),color:C.blueDel3},
     {lbl:'Uber order fee',val:nn(curr.uberOF),color:C.greenUber1},
     {lbl:'Uber tips',val:nn(curr.uberTips),color:C.greenUber2},
-    {lbl:'Just Eat order fee',val:nn(curr.justOF),color:C.orangeJust1},
-    {lbl:'Just Eat tips',val:nn(curr.justTips),color:C.orangeJust2},
+    {lbl:'Just Eat order fee',      val:nn(curr.justOF),             color:C.orangeJust1},
+    {lbl:'Just Eat bonus',          val:nn(curr.justBonus),          color:C.orangeJust3},
+    {lbl:'Just Eat reimbursements', val:nn(curr.justReimbursements), color:C.orangeJust4},
+    {lbl:'Just Eat tips',           val:nn(curr.justTips),           color:C.orangeJust2},
     {lbl:'Tips cash',val:nn(curr.tipscash),color:GRAY_MED},
   ].filter(p=>p.val>0);
   const wDelTot=nn(curr.delOF)+nn(curr.delEF)+nn(curr.delTips);
   const wUberTot=nn(curr.uberOF)+nn(curr.uberTips);
-  const wJustTot=nn(curr.justOF)+nn(curr.justTips);
+  const wJustTot=nn(curr.justOF)+nn(curr.justBonus)+nn(curr.justReimbursements)+nn(curr.justTips);
   const wGroups=[
     {name:'Deliveroo',color:C.blueDel1,total:wDelTot,subs:[
       {lbl:'Order fee',val:nn(curr.delOF),color:C.blueDel1},
@@ -1987,8 +2065,10 @@ function renderSemana(){
       {lbl:'Tips app', val:nn(curr.uberTips),color:C.greenUber2},
     ]},
     {name:'Just Eat',color:C.orangeJust1,total:wJustTot,subs:[
-      {lbl:'Order fee',val:nn(curr.justOF),color:C.orangeJust1},
-      {lbl:'Tips app', val:nn(curr.justTips),color:C.orangeJust2},
+      {lbl:'Order fee',      val:nn(curr.justOF),             color:C.orangeJust1},
+      {lbl:'Bonus',          val:nn(curr.justBonus),          color:C.orangeJust3},
+      {lbl:'Reimbursements', val:nn(curr.justReimbursements), color:C.orangeJust4},
+      {lbl:'Tips app',       val:nn(curr.justTips),           color:C.orangeJust2},
     ]},
   ];
   if(wTotal>0) renderComposeDonut('w-compose','w-compose-legend','w-compose-center',wParts,wTotal,wGroups,[{lbl:'Tips cash',val:nn(curr.tipscash),color:GRAY_MED}]);
@@ -2422,6 +2502,8 @@ function renderMes(){
   const mDelTotal=mData.reduce((s,r)=>s+nn(r.delTotal),0);
   const mUberTotal=mData.reduce((s,r)=>s+nn(r.uberTotal),0);
   const mJustOF=mData.reduce((s,r)=>s+nn(r.justOF),0);
+  const mJustBonus=mData.reduce((s,r)=>s+nn(r.justBonus),0);
+  const mJustReimbursements=mData.reduce((s,r)=>s+nn(r.justReimbursements),0);
   const mJustTips=mData.reduce((s,r)=>s+nn(r.justTips),0);
   const mJustTotal=mData.reduce((s,r)=>s+nn(r.justTotal),0);
   // mDelOrd, mUberOrd, mJustOrd já definidos no início de renderMes
@@ -2433,8 +2515,10 @@ function renderMes(){
     {lbl:'Deliveroo tips',val:mDelTips,color:C.blueDel3},
     {lbl:'Uber order fee',val:mUberOF,color:C.greenUber1},
     {lbl:'Uber tips',val:mUberTips,color:C.greenUber2},
-    {lbl:'Just Eat order fee',val:mJustOF,color:C.orangeJust1},
-    {lbl:'Just Eat tips',val:mJustTips,color:C.orangeJust2},
+    {lbl:'Just Eat order fee',      val:mJustOF,             color:C.orangeJust1},
+    {lbl:'Just Eat bonus',          val:mJustBonus,          color:C.orangeJust3},
+    {lbl:'Just Eat reimbursements', val:mJustReimbursements, color:C.orangeJust4},
+    {lbl:'Just Eat tips',           val:mJustTips,           color:C.orangeJust2},
     {lbl:'Tips cash',val:mCashTips,color:GRAY_MED},
   ].filter(p=>p.val>0);
   const mGroups=[
@@ -2447,9 +2531,11 @@ function renderMes(){
       {lbl:'Order fee',val:mUberOF,  color:C.greenUber1},
       {lbl:'Tips app', val:mUberTips,color:C.greenUber2},
     ]},
-    {name:'Just Eat',color:C.orangeJust1,total:mJustOF+mJustTips,subs:[
-      {lbl:'Order fee',val:mJustOF,  color:C.orangeJust1},
-      {lbl:'Tips app', val:mJustTips,color:C.orangeJust2},
+    {name:'Just Eat',color:C.orangeJust1,total:mJustOF+mJustBonus+mJustReimbursements+mJustTips,subs:[
+      {lbl:'Order fee',      val:mJustOF,             color:C.orangeJust1},
+      {lbl:'Bonus',          val:mJustBonus,          color:C.orangeJust3},
+      {lbl:'Reimbursements', val:mJustReimbursements, color:C.orangeJust4},
+      {lbl:'Tips app',       val:mJustTips,           color:C.orangeJust2},
     ]},
   ];
   if(mTotalComp>0) renderComposeDonut('m-compose','m-compose-legend','m-compose-center',mParts,mTotalComp,mGroups,[{lbl:'Tips cash',val:mCashTips,color:GRAY_MED}]);
@@ -2761,6 +2847,8 @@ function renderHistorico(){
   const hiUberOF=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.uberOF),0);
   const hiUberTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.uberTips),0);
   const hiJustOF=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justOF),0);
+  const hiJustBonus=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justBonus),0);
+  const hiJustReimbursements=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justReimbursements),0);
   const hiJustTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justTips),0);
   const hiJustTotal=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.justTotal),0);
   const hiCashTips=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.tipscash),0);
@@ -2777,8 +2865,10 @@ function renderHistorico(){
     {lbl:'Deliveroo tips',val:hiDelTips,color:C.blueDel3},
     {lbl:'Uber order fee',val:hiUberOF,color:C.greenUber1},
     {lbl:'Uber tips',val:hiUberTips,color:C.greenUber2},
-    {lbl:'Just Eat order fee',val:hiJustOF,color:C.orangeJust1},
-    {lbl:'Just Eat tips',val:hiJustTips,color:C.orangeJust2},
+    {lbl:'Just Eat order fee',      val:hiJustOF,             color:C.orangeJust1},
+    {lbl:'Just Eat bonus',          val:hiJustBonus,          color:C.orangeJust3},
+    {lbl:'Just Eat reimbursements', val:hiJustReimbursements, color:C.orangeJust4},
+    {lbl:'Just Eat tips',           val:hiJustTips,           color:C.orangeJust2},
     {lbl:'Tips cash',val:hiCashTips,color:GRAY_MED},
   ].filter(p=>p.val>0);
   const hiGroups=[
@@ -2791,9 +2881,11 @@ function renderHistorico(){
       {lbl:'Order fee',val:hiUberOF,  color:C.greenUber1},
       {lbl:'Tips app', val:hiUberTips,color:C.greenUber2},
     ]},
-    {name:'Just Eat',color:C.orangeJust1,total:hiJustOF+hiJustTips,subs:[
-      {lbl:'Order fee',val:hiJustOF,  color:C.orangeJust1},
-      {lbl:'Tips app', val:hiJustTips,color:C.orangeJust2},
+    {name:'Just Eat',color:C.orangeJust1,total:hiJustOF+hiJustBonus+hiJustReimbursements+hiJustTips,subs:[
+      {lbl:'Order fee',      val:hiJustOF,             color:C.orangeJust1},
+      {lbl:'Bonus',          val:hiJustBonus,          color:C.orangeJust3},
+      {lbl:'Reimbursements', val:hiJustReimbursements, color:C.orangeJust4},
+      {lbl:'Tips app',       val:hiJustTips,           color:C.orangeJust2},
     ]},
   ];
   if(totalRec>0) renderComposeDonut('hi-compose','hi-compose-legend','hi-compose-center',hiParts,totalRec,hiGroups,[{lbl:'Tips cash',val:hiCashTips,color:GRAY_MED}]);
@@ -3044,6 +3136,104 @@ function buildHistTable(){
       tb.appendChild(dr2);
     });
   });
+}
+
+// ========== ABA RESUMO ==========
+function onDaySelChange(){
+  const v=document.getElementById('day-sel').value;
+  const rsel=document.getElementById('resumo-day-sel');
+  if(rsel) rsel.value=v;
+  renderDiario();
+  renderResumo();
+}
+
+function onResumoSelChange(){
+  const v=document.getElementById('resumo-day-sel').value;
+  document.getElementById('day-sel').value=v;
+  renderResumo();
+  renderDiario();
+}
+
+function calcDiagnostico(liquido,liqHora,horas){
+  const lh=isNaN(liqHora)?0:liqHora;
+  // Estado 1 — Dia no vermelho
+  if(liquido<0) return{cls:'red',titulo:'🔴 Dia no vermelho',frase:'Esse dia não valeu a pena.',insight:'O resultado do dia ficou negativo.'};
+  // Estado 2 — Dia curto
+  if(horas<3) return{cls:'neutral',titulo:'⏱ Dia curto',frase:'Dia curto — custos fixos pesaram no resultado.',insight:lh<=12.99?'O ganho por hora ficou baixo nesse dia. Trabalhar mais horas ou escolher horários melhores pode ajudar a diluir os custos.':''};
+  // TODO: contexto de feriado/evento — backlog, sem dado disponível no dashboard atual
+  // Matriz resultado × eficiência (estados 3–11)
+  if(liquido>=100){
+    if(lh>=16) return{cls:'green',titulo:'🔥 Dia forte',frase:'Esse dia valeu a pena.',insight:'Bom total e boa eficiência no dia.'};
+    if(lh>=13) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Esse dia valeu a pena, mas exigiu bastante esforço.',insight:'O ganho por hora ficou abaixo do ideal.'};
+    return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:'O ganho por hora ficou baixo nesse dia. Trabalhar mais horas ou escolher horários melhores pode ajudar a diluir os custos.'};
+  }
+  if(liquido>=80){
+    if(lh>=16) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, e o total ficou ok.',insight:''};
+    if(lh>=13) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Dia ok.',insight:'Resultado dentro do esperado para o dia.'};
+    return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:'O ganho por hora ficou abaixo do ideal.'};
+  }
+  // liquido < 80
+  if(lh>=16) return{cls:'amber',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, mas sobrou pouco no total.',insight:''};
+  if(lh>=13) return{cls:'amber',titulo:'⚠️ Dia fraco',frase:'Esse dia não valeu muito a pena.',insight:'Resultado baixo para o tempo trabalhado.'};
+  return{cls:'red',titulo:'🔴 Dia fraco',frase:'Esse dia não valeu a pena.',insight:'O ganho por hora ficou abaixo do ideal.'};
+}
+
+function renderResumo(){
+  const sel=document.getElementById('resumo-day-sel');
+  const dateStr=sel?sel.value:'';
+  const statusEl=document.getElementById('sv-status');
+  const fraseEl=document.getElementById('sv-frase');
+  const insEl=document.getElementById('sv-insight');
+
+  function svReset(msg){
+    if(statusEl){statusEl.textContent='Sem trabalho registrado';statusEl.className='sv-status neutral';}
+    if(fraseEl) fraseEl.textContent=msg||'Não há trabalho registrado nesse dia.';
+    if(insEl){insEl.textContent='';insEl.style.display='none';}
+    ['sv-bruto','sv-liquido','sv-custos','sv-liq-hora','sv-horas'].forEach(function(id){
+      const el=document.getElementById(id);if(el){el.textContent='—';el.style.color='';}
+    });
+  }
+
+  if(!gRaw.length||!dateStr){svReset('Carregue os dados para ver o diagnóstico.');return;}
+
+  const r=gRaw.find(function(x){return(x.dateKey||localDateKey(x.date))===dateStr;});
+  const bruto=r?nn(r.total):0;
+  const horas=r?nn(r.horas):0;
+  if(!r||(!bruto&&!horas)){svReset();return;}
+
+  const liquido=nn(r.liquido);
+  const custos=bruto-liquido;
+  const liqHora=horas>0?liquido/horas:NaN;
+  const diag=calcDiagnostico(liquido,liqHora,horas);
+
+  if(statusEl){statusEl.textContent=diag.titulo;statusEl.className='sv-status '+diag.cls;}
+  if(fraseEl) fraseEl.textContent=diag.frase;
+
+  if(insEl){
+    if(diag.insight){insEl.textContent=diag.insight;insEl.style.display='';}
+    else{insEl.textContent='';insEl.style.display='none';}
+  }
+
+  const bruEl=document.getElementById('sv-bruto');
+  if(bruEl) bruEl.textContent='€'+bruto.toFixed(2);
+
+  const liqEl=document.getElementById('sv-liquido');
+  if(liqEl){
+    liqEl.textContent=liquido>=0?'€'+liquido.toFixed(2):'−€'+Math.abs(liquido).toFixed(2);
+    liqEl.style.color=liquido>=100?'var(--green)':liquido>=80?'var(--amber)':'var(--red)';
+  }
+
+  const cusEl=document.getElementById('sv-custos');
+  if(cusEl) cusEl.textContent='€'+custos.toFixed(2);
+
+  const lhEl=document.getElementById('sv-liq-hora');
+  if(lhEl){
+    lhEl.textContent=!isNaN(liqHora)?'€'+liqHora.toFixed(2):'—';
+    lhEl.style.color=!isNaN(liqHora)?(liqHora>=16?'var(--green)':liqHora>=13?'var(--amber)':'var(--red)'):'';
+  }
+
+  const hEl=document.getElementById('sv-horas');
+  if(hEl) hEl.textContent=horas>0?horas.toFixed(1)+'h':'—';
 }
 
 window.addEventListener('load',function(){
