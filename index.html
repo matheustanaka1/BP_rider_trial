@@ -406,9 +406,12 @@ table.show-deltas tbody td.delta-col{display:table-cell;}
 .sv-label{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
   color:var(--text3);margin-bottom:14px;}
 .sv-status{font-size:21px;font-weight:700;margin-bottom:8px;letter-spacing:-.3px;line-height:1.2;}
-.sv-status.green{color:var(--green);}
-.sv-status.red{color:var(--red);}
-.sv-status.amber{color:var(--amber);}
+.sv-status.green{color:#39d353;}
+.sv-status.softgreen{color:#2da44e;}
+.sv-status.white{color:#f0f6fc;}
+.sv-status.amber{color:#d29922;}
+.sv-status.orange{color:#f0883e;}
+.sv-status.red{color:#f85149;}
 .sv-status.neutral{color:var(--text3);}
 .sv-frase{font-size:14px;color:var(--text2);font-weight:500;line-height:1.4;}
 .sv-metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
@@ -3160,26 +3163,24 @@ function onResumoSelChange(){
 
 function calcDiagnostico(liquido,liqHora,horas){
   const lh=isNaN(liqHora)?0:liqHora;
-  // Estado 1 — Dia no vermelho
-  if(liquido<0) return{cls:'red',titulo:'🔴 Dia no vermelho',frase:'Esse dia não valeu a pena.',insight:'O resultado do dia ficou negativo.'};
-  // Estado 2 — Dia curto
-  if(horas<3) return{cls:'neutral',titulo:'⏱ Dia curto',frase:'Dia curto — custos fixos pesaram no resultado.',insight:lh<=12.99?'O ganho por hora ficou baixo nesse dia. Trabalhar mais horas ou escolher horários melhores pode ajudar a diluir os custos.':''};
+  // Exceção 1 — Dia no vermelho
+  if(liquido<0) return{cls:'red',titulo:'Dia no vermelho',frase:'O resultado do dia ficou negativo.',tipo:'vermelho'};
+  // Exceção 2 — Dia curto
+  if(horas<3) return{cls:'white',  titulo:'⏱ Dia curto',frase:'Dia curto — custos fixos pesaram no resultado.',tipo:'curto'};
   // TODO: contexto de feriado/evento — backlog, sem dado disponível no dashboard atual
-  // Matriz resultado × eficiência (estados 3–11)
-  if(liquido>=100){
-    if(lh>=16) return{cls:'green',titulo:'🔥 Dia forte',frase:'Esse dia valeu a pena.',insight:''};
-    if(lh>=13) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Esse dia valeu a pena, mas exigiu bastante esforço.',insight:''};
-    return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:''};
-  }
-  if(liquido>=80){
-    if(lh>=16) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, e o total ficou ok.',insight:''};
-    if(lh>=13) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Dia ok.',insight:''};
-    return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Entrou dinheiro, mas com esforço alto.',insight:''};
-  }
-  // liquido < 80
-  if(lh>=16) return{cls:'neutral',titulo:'⚖️ Dia ok',frase:'Foi bom por hora, mas sobrou pouco no total.',insight:''};
-  if(lh>=13) return{cls:'amber',titulo:'⚠️ Abaixo do ideal',frase:'O ganho por hora ficou abaixo do ideal.',insight:''};
-  return{cls:'amber',titulo:'⚠️ Abaixo do ideal',frase:'O ganho por hora ficou abaixo do ideal.',insight:''};
+  // Categorias Beta v2
+  const totCat=liquido>=90?'bom':liquido>=75?'media':'baixo';
+  const horaCat=lh>=14.5?'bom':lh>=11.5?'media':'baixo';
+  // Matriz 3×3
+  if(totCat==='bom'&&horaCat==='bom')    return{cls:'green',  titulo:'Dia muito bom',    frase:'Bom ganho total líquido e bom ganho por hora.',                          tipo:'muito_bom'};
+  if(totCat==='bom'&&horaCat==='media')  return{cls:'softgreen',titulo:'Dia bom',         frase:'Bom ganho total líquido, com ganho por hora na média.',                  tipo:'bom',subtipo:'total_bom_hora_media'};
+  if(totCat==='bom'&&horaCat==='baixo')  return{cls:'white',  titulo:'Dia na média',      frase:'Bom ganho total líquido, mas ganho por hora abaixo do ideal.',           tipo:'media',subtipo:'total_bom_hora_baixo'};
+  if(totCat==='media'&&horaCat==='bom')  return{cls:'softgreen',titulo:'Dia bom',         frase:'Bom ganho por hora, com ganho total líquido na média.',                  tipo:'bom',subtipo:'total_media_hora_bom'};
+  if(totCat==='media'&&horaCat==='media')return{cls:'white',  titulo:'Dia na média',      frase:'Ganho total líquido e ganho por hora ficaram na média.',                 tipo:'media',subtipo:'total_media_hora_media'};
+  if(totCat==='media'&&horaCat==='baixo')return{cls:'amber',  titulo:'Ponto de atenção', frase:'Ganho total líquido na média, mas ganho por hora abaixo do ideal.',      tipo:'atencao',subtipo:'total_media_hora_baixo'};
+  if(totCat==='baixo'&&horaCat==='bom')  return{cls:'white',  titulo:'Dia na média',      frase:'Bom ganho por hora, mas ganho total líquido abaixo do ideal.',           tipo:'media',subtipo:'total_baixo_hora_bom'};
+  if(totCat==='baixo'&&horaCat==='media')return{cls:'amber',  titulo:'Ponto de atenção', frase:'Ganho por hora na média, mas ganho total líquido abaixo do ideal.',      tipo:'atencao',subtipo:'total_baixo_hora_media'};
+  return                                        {cls:'orange', titulo:'Abaixo do ideal',  frase:'Ganho total líquido e ganho por hora ficaram abaixo do ideal.',          tipo:'abaixo'};
 }
 
 function renderResumo(){
@@ -3210,41 +3211,61 @@ function renderResumo(){
   const brutoHora=horas>0?bruto/horas:NaN;
   const liqHora=horas>0?liquido/horas:NaN;
   const diag=calcDiagnostico(liquido,liqHora,horas);
+  function fmtMoneyResumo(v){return v<0?'-€'+Math.abs(v).toFixed(2):'€'+v.toFixed(2);}
 
   if(statusEl){statusEl.textContent=diag.titulo;statusEl.className='sv-status '+diag.cls;}
   if(fraseEl) fraseEl.textContent=diag.frase;
 
   if(insEl){
-    const lhStr=!isNaN(liqHora)?'€'+liqHora.toFixed(2)+'/h':'—';
+    const lhStr=!isNaN(liqHora)?fmtMoneyResumo(liqHora)+'/h':'—';
+    const liqStr=fmtMoneyResumo(liquido);
+    const brutoStr=fmtMoneyResumo(bruto);
     let insightText='';
-    if(liquido<0){
-      insightText='Você fez €'+bruto.toFixed(2)+', mas os descontos passaram a receita do dia. Em '+horas.toFixed(1)+'h, o resultado líquido ficou em -€'+Math.abs(liquido).toFixed(2)+'.';
-    } else if(descontos<=0){
-      insightText='Você fez €'+bruto.toFixed(2)+' e não houve descontos registrados nesse dia. Em '+horas.toFixed(1)+'h, o ganho líquido ficou em '+lhStr+'.';
-    } else {
-      insightText='Você fez €'+bruto.toFixed(2)+', mas sobraram €'+liquido.toFixed(2)+' depois dos descontos. Em '+horas.toFixed(1)+'h, o ganho líquido ficou em '+lhStr+'.';
+    const key=diag.subtipo||diag.tipo;
+    if(key==='muito_bom'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. Esse dia combinou bom ganho total líquido com bom ganho por hora.';
+    } else if(key==='total_bom_hora_media'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. O ganho total líquido foi bom, e o ganho por hora ficou na média para o dia.';
+    } else if(key==='total_media_hora_bom'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. O ganho por hora foi bom, e o ganho total líquido ficou na média para o dia.';
+    } else if(key==='total_media_hora_media'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. Os dois indicadores ficaram na média, sem grande destaque positivo ou negativo.';
+    } else if(key==='total_bom_hora_baixo'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. O ganho total líquido foi bom, mas o ganho por hora ficou abaixo do ideal, deixando o dia na média.';
+    } else if(key==='total_baixo_hora_bom'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. O ganho por hora foi bom, mas o ganho total líquido ficou abaixo do ideal, deixando o dia na média.';
+    } else if(key==='total_media_hora_baixo'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. O ganho total líquido ficou na média, mas o ganho por hora ficou abaixo do ideal — vale observar se esse padrão está fazendo sentido para suas metas.';
+    } else if(key==='total_baixo_hora_media'){
+      insightText='Você terminou com '+liqStr+' líquidos e '+lhStr+'. O ganho por hora ficou na média, mas o ganho total líquido ficou abaixo do ideal — vale observar se esse padrão está fazendo sentido para suas metas.';
+    } else if(key==='abaixo'){
+      insightText='Você fez '+brutoStr+', mas depois dos descontos ficou com '+liqStr+'. Em '+horas.toFixed(1)+'h, isso deu '+lhStr+' líquido — vale observar se esse padrão está fazendo sentido para suas metas.';
+    } else if(key==='curto'){
+      insightText='Você trabalhou '+horas.toFixed(1)+'h. Em dias curtos, os custos pesam mais e reduzem o ganho líquido — vale avaliar se esse tipo de dia faz sentido para suas metas.';
+    } else if(key==='vermelho'){
+      insightText='Os descontos/custos foram maiores que o ganho do dia, por isso o resultado ficou negativo. Vale revisar o que pesou nesse dia.';
     }
     if(insightText){insEl.textContent=insightText;insEl.style.display='';}
     else{insEl.textContent='';insEl.style.display='none';}
   }
 
   const bruEl=document.getElementById('sv-bruto');
-  if(bruEl) bruEl.textContent='€'+bruto.toFixed(2);
+  if(bruEl) bruEl.textContent=fmtMoneyResumo(bruto);
 
   const liqEl=document.getElementById('sv-liquido');
-  if(liqEl) liqEl.textContent=liquido>=0?'€'+liquido.toFixed(2):'−€'+Math.abs(liquido).toFixed(2);
+  if(liqEl) liqEl.textContent=fmtMoneyResumo(liquido);
 
   const bhEl=document.getElementById('sv-bruto-hora');
-  if(bhEl) bhEl.textContent=!isNaN(brutoHora)?'€'+brutoHora.toFixed(2):'—';
+  if(bhEl) bhEl.textContent=!isNaN(brutoHora)?fmtMoneyResumo(brutoHora):'—';
 
   const lhEl=document.getElementById('sv-liq-hora');
-  if(lhEl) lhEl.textContent=!isNaN(liqHora)?'€'+liqHora.toFixed(2):'—';
+  if(lhEl) lhEl.textContent=!isNaN(liqHora)?fmtMoneyResumo(liqHora):'—';
 
   const hEl=document.getElementById('sv-horas');
   if(hEl) hEl.textContent=horas>0?horas.toFixed(1)+'h':'—';
 
   const desEl=document.getElementById('sv-descontos');
-  if(desEl) desEl.textContent=descontos>0?'−€'+descontos.toFixed(2):'—';
+  if(desEl) desEl.textContent=descontos>0?fmtMoneyResumo(-Math.abs(descontos)):'—';
 }
 
 window.addEventListener('load',function(){
