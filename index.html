@@ -1145,7 +1145,8 @@ function processGviz(resp){
     delTotal:'deliveroo total',delOF:'deliveroo order fee',delEF:'deliveroo extras fee',
     delTips:'deliveroo tips',delOrd:'deliveroo n orders',
     feehora:'fee/hora',ordershora:'orders/hora',horas:'horas totais',km:'km totais',
-    bike:'aluguel bike',rentDel:'aluguel conta deliveroo',rentUber:'aluguel conta uber eats'
+    bike:'aluguel bike',rentDel:'aluguel conta deliveroo',rentUber:'aluguel conta uber eats',
+    rentJust:'aluguel conta just eat'
   };
 
   function idxFor(key){const name=COL_NAMES[key];if(!name) return undefined;return colIdx[name.toLowerCase()];}
@@ -1170,7 +1171,8 @@ function processGviz(resp){
     const bike=pn(cv(row,'bike'));
     const rentDel=pn(cv(row,'rentDel'));
     const rentUber=pn(cv(row,'rentUber'));
-    const liquido=nn(total)+nn(bike)+nn(rentDel)+nn(rentUber);
+    const rentJust=pn(cv(row,'rentJust'));
+    const liquido=nn(total)+nn(bike)+nn(rentDel)+nn(rentUber)+nn(rentJust);
     data.push({
       date:dt,dateKey:localDateKey(dt),total,liquido,horas,
       feehora:pn(cv(row,'feehora')),orders:pn(cv(row,'totalOrders')),
@@ -1183,7 +1185,7 @@ function processGviz(resp){
       justTips:pn(cv(row,'justTips')),justOrd:pn(cv(row,'justOrd')),
       delTotal:pn(cv(row,'delTotal')),delOF:pn(cv(row,'delOF')),
       delEF:pn(cv(row,'delEF')),delTips:pn(cv(row,'delTips')),
-      delOrd:pn(cv(row,'delOrd')),bike,rentDel,rentUber,
+      delOrd:pn(cv(row,'delOrd')),bike,rentDel,rentUber,rentJust,
       worked:!isNaN(horas)&&horas>0
     });
   }
@@ -1206,7 +1208,7 @@ function processGviz(resp){
         delOF:0,delEF:0,delTips:0,delOrd:0,
         uberOF:0,uberTips:0,uberOrd:0,
         justOF:0,justBonus:0,justReimbursements:0,justTips:0,justOrd:0,
-        tipscash:0,bike:0,rentDel:0,rentUber:0,
+        tipscash:0,bike:0,rentDel:0,rentUber:0,rentJust:0,
         days:[]});
     }
     const w=wMap.get(key);
@@ -1228,17 +1230,17 @@ function processGviz(resp){
     const key=iso.y+'_'+String(iso.w).padStart(2,'0');
     if(!wMap.has(key)) continue; // só semanas que têm pelo menos 1 dia trabalhado
     const w=wMap.get(key);
-    w.bike+=nn(r.bike);w.rentDel+=nn(r.rentDel);w.rentUber+=nn(r.rentUber);
+    w.bike+=nn(r.bike);w.rentDel+=nn(r.rentDel);w.rentUber+=nn(r.rentUber);w.rentJust+=nn(r.rentJust);
   }
   // Recalcula líquido com descontos completos (7 dias)
   for(const [,w] of wMap){
-    w.liquido=w.receita-Math.abs(w.bike)-Math.abs(w.rentDel)-Math.abs(w.rentUber)+Math.abs(w.tipscash);
+    w.liquido=w.receita-Math.abs(w.bike)-Math.abs(w.rentDel)-Math.abs(w.rentUber)-Math.abs(w.rentJust)+Math.abs(w.tipscash);
   }
   gW=Array.from(wMap.values()).filter(w=>w.receita>0)
     .sort((a,b)=>a.y!==b.y?a.y-b.y:a.wn-b.wn);
   gW.forEach(w=>{
     w.feehora=w.horas>0?w.receita/w.horas:NaN;
-    w.feehoraLiq=w.horas>0?(w.receita-Math.abs(w.bike)-Math.abs(w.rentDel)-Math.abs(w.rentUber))/w.horas:NaN;
+    w.feehoraLiq=w.horas>0?(w.receita-Math.abs(w.bike)-Math.abs(w.rentDel)-Math.abs(w.rentUber)-Math.abs(w.rentJust))/w.horas:NaN;
     w.feeorder=w.orders>0?w.receita/w.orders:NaN;
     w.feekm=w.km>0?w.receita/w.km:NaN;
     w.pedhora=w.horas>0?w.orders/w.horas:NaN;
@@ -1463,7 +1465,8 @@ function renderDiario(){
     addD('Bike',r.bike);
     addD('Conta Deliveroo',r.rentDel);
     addD('Conta Uber',r.rentUber);
-    const total=Math.abs(nn(r.bike))+Math.abs(nn(r.rentDel))+Math.abs(nn(r.rentUber));
+    addD('Conta Just Eat',r.rentJust);
+    const total=Math.abs(nn(r.bike))+Math.abs(nn(r.rentDel))+Math.abs(nn(r.rentUber))+Math.abs(nn(r.rentJust));
     const sub=document.createElement('div');
     sub.className='ded-subtotal';
     sub.innerHTML=`<span class="ded-subtotal-lbl">Total de descontos</span><span class="ded-subtotal-val neg">-€${total.toFixed(2)}</span>`;
@@ -1697,7 +1700,7 @@ function renderComposeDonut(chartId, legId, centerId, parts, total, groups, simp
 }
 
 // ─── Helper: renderiza tabela de descontos acumulados ────────────────────────
-function renderDeducts(containerId, bike, rentDel, rentUber, tipscash, liquido, prevLiq){
+function renderDeducts(containerId, bike, rentDel, rentUber, rentJust, tipscash, liquido, prevLiq){
   const el=document.getElementById(containerId);
   if(!el) return;
   const nv=v=>isNaN(v)||v==null?0:Math.abs(v);
@@ -1711,7 +1714,8 @@ function renderDeducts(containerId, bike, rentDel, rentUber, tipscash, liquido, 
   addRow('Bike',bike);
   addRow('Conta Deliveroo',rentDel);
   addRow('Conta Uber',rentUber);
-  const total=nv(bike)+nv(rentDel)+nv(rentUber);
+  addRow('Conta Just Eat',rentJust);
+  const total=nv(bike)+nv(rentDel)+nv(rentUber)+nv(rentJust);
   const sub=document.createElement('div');sub.className='ded-subtotal';
   sub.innerHTML=`<span class="ded-subtotal-lbl">Total de descontos</span><span class="ded-subtotal-val neg">-€${total.toFixed(2)}</span>`;
   el.appendChild(sub);
@@ -1979,8 +1983,8 @@ function renderSemana(){
   // Dias não trabalhados: bruto=0, líquido=custo fixo diário negativo
   const avgFhBruto=gW.filter(w=>!isNaN(w.feehora)).reduce((s,w)=>s+w.feehora,0)/gW.filter(w=>!isNaN(w.feehora)).length;
   // Custo fixo diário: usa descontos da semana atual, ou média histórica se não disponível
-  const avgCustoSem=gW.length>0?gW.reduce((s,w)=>s+Math.abs(nn(w.bike))+Math.abs(nn(w.rentDel))+Math.abs(nn(w.rentUber)),0)/gW.length:0;
-  const custoSemAtual=Math.abs(nn(curr.bike))+Math.abs(nn(curr.rentDel))+Math.abs(nn(curr.rentUber));
+  const avgCustoSem=gW.length>0?gW.reduce((s,w)=>s+Math.abs(nn(w.bike))+Math.abs(nn(w.rentDel))+Math.abs(nn(w.rentUber))+Math.abs(nn(w.rentJust)),0)/gW.length:0;
+  const custoSemAtual=Math.abs(nn(curr.bike))+Math.abs(nn(curr.rentDel))+Math.abs(nn(curr.rentUber))+Math.abs(nn(curr.rentJust));
   const custoFixoDiario=(custoSemAtual>0?custoSemAtual:avgCustoSem)/7;
   const fhBrutoDia=weekDays.map(d=>{
     const r=gRaw.find(x=>{const xd=new Date(x.date);xd.setHours(0,0,0,0);return xd.getTime()===d.getTime();});
@@ -1993,7 +1997,7 @@ function renderSemana(){
       return custoFixoDiario>0?parseFloat((-custoFixoDiario).toFixed(2)):null;
     }
     // líquido = (receita - descontos_dia) / horas — nunca maior que bruto
-    const descDia=Math.abs(nn(r.bike))+Math.abs(nn(r.rentDel))+Math.abs(nn(r.rentUber));
+    const descDia=Math.abs(nn(r.bike))+Math.abs(nn(r.rentDel))+Math.abs(nn(r.rentUber))+Math.abs(nn(r.rentJust));
     return parseFloat(((r.total-descDia)/r.horas).toFixed(2));
   });
 
@@ -2103,7 +2107,7 @@ function renderSemana(){
   s('w-just-ord',Math.round(nn(curr.justOrd))+'');
 
   // Descontos e liquido
-  renderDeducts('w-deducts',nn(curr.bike),nn(curr.rentDel),nn(curr.rentUber),nn(curr.tipscash),nn(curr.liquido),null);
+  renderDeducts('w-deducts',nn(curr.bike),nn(curr.rentDel),nn(curr.rentUber),nn(curr.rentJust),nn(curr.tipscash),nn(curr.liquido),null);
   s('w-liq-hero',fe(nn(curr.liquido)));
 
   // Tips por dia da semana
@@ -2132,9 +2136,10 @@ function renderMes(){
   const mBike=mAllDays.reduce((s,r)=>s+Math.abs(nn(r.bike)),0);
   const mRentDel=mAllDays.reduce((s,r)=>s+Math.abs(nn(r.rentDel)),0);
   const mRentUber=mAllDays.reduce((s,r)=>s+Math.abs(nn(r.rentUber)),0);
+  const mRentJust=mAllDays.reduce((s,r)=>s+Math.abs(nn(r.rentJust)),0);
   const mRec=mData.reduce((s,r)=>s+nn(r.total),0);
   const mCashTips=mData.reduce((s,r)=>s+Math.abs(nn(r.tipscash)),0);
-  const mLiq=mRec-mBike-mRentDel-mRentUber+mCashTips;
+  const mLiq=mRec-mBike-mRentDel-mRentUber-mRentJust+mCashTips;
   const mH=mData.reduce((s,r)=>s+nn(r.horas),0);
   const mKm=mData.reduce((s,r)=>s+nn(r.km),0);
   const mOrd=mData.reduce((s,r)=>s+nn(r.orders),0);
@@ -2360,11 +2365,12 @@ function renderMes(){
     const bike=daysAllInRange.reduce((s,r)=>s+Math.abs(nn(r.bike)),0);
     const rentDel=daysAllInRange.reduce((s,r)=>s+Math.abs(nn(r.rentDel)),0);
     const rentUber=daysAllInRange.reduce((s,r)=>s+Math.abs(nn(r.rentUber)),0);
+    const rentJust=daysAllInRange.reduce((s,r)=>s+Math.abs(nn(r.rentJust)),0);
     const tipscash=daysInRange.reduce((s,r)=>s+Math.abs(nn(r.tipscash)),0);
     const delTips=daysInRange.reduce((s,r)=>s+nn(r.delTips),0);
     const uberTips=daysInRange.reduce((s,r)=>s+nn(r.uberTips),0);
     const justTips=daysInRange.reduce((s,r)=>s+nn(r.justTips),0);
-    const liq=rec-bike-rentDel-rentUber+tipscash;
+    const liq=rec-bike-rentDel-rentUber-rentJust+tipscash;
     const fhBruto=horas>0?rec/horas:null;
     const fhLiq=horas>0?liq/horas:null;
     const hasData=daysInRange.length>0;
@@ -2372,7 +2378,7 @@ function renderMes(){
     allMonWeeks.push({
       label, monday:new Date(cur), hasData,
       receita:rec, liquido:liq, horas, km, orders, dias,
-      bike, rentDel, rentUber, tipscash,
+      bike, rentDel, rentUber, rentJust, tipscash,
       delTips, uberTips, justTips, fhBruto, fhLiq,
       weekStart:new Date(weekStart), weekEnd:new Date(weekEnd)
     });
@@ -2569,7 +2575,7 @@ function renderMes(){
   sm('m-just-ord',Math.round(mJustOrd)+'');
 
   // Descontos e líquido
-  renderDeducts('m-deducts',mBike,mRentDel,mRentUber,mCashTips,mLiq,null);
+  renderDeducts('m-deducts',mBike,mRentDel,mRentUber,mRentJust,mCashTips,mLiq,null);
   sm('m-liq-hero',fe(mLiq));
 
   // Tips por semana do mês
@@ -2688,7 +2694,7 @@ function renderHistorico(){
   gRaw.filter(r=>r.worked).forEach(r=>{
     const mkey=r.date.getFullYear()+'-'+String(r.date.getMonth()+1).padStart(2,'0');
     if(!monthMap[mkey]) monthMap[mkey]={rec:0,liq:0,horas:0,orders:0,dias:0,km:0,
-      bike:0,rentDel:0,rentUber:0,tipscash:0,delivRev:0,uberRev:0,justRev:0};
+      bike:0,rentDel:0,rentUber:0,rentJust:0,tipscash:0,delivRev:0,uberRev:0,justRev:0};
     monthMap[mkey].rec+=nn(r.total);
     monthMap[mkey].liq+=nn(r.liquido);
     monthMap[mkey].horas+=nn(r.horas);
@@ -2707,6 +2713,7 @@ function renderHistorico(){
     monthMap[mkey].bike+=Math.abs(nn(r.bike));
     monthMap[mkey].rentDel+=Math.abs(nn(r.rentDel));
     monthMap[mkey].rentUber+=Math.abs(nn(r.rentUber));
+    monthMap[mkey].rentJust+=Math.abs(nn(r.rentJust));
   });
   const monthKeys=Object.keys(monthMap).sort();
   const monthLabels=monthKeys.map(k=>{const[y,m]=k.split('-');return MTHS[parseInt(m)-1]+'/'+y.slice(2);});
@@ -2800,7 +2807,7 @@ function renderHistorico(){
 
   // Gráfico fee/hora — médias por mês (usa monthMap já calculado)
   const monthFhBruto=monthKeys.map(k=>monthMap[k].horas>0?parseFloat((monthMap[k].rec/monthMap[k].horas).toFixed(2)):null);
-  const monthFhLiq=monthKeys.map(k=>monthMap[k].horas>0?parseFloat(((monthMap[k].rec-monthMap[k].bike-monthMap[k].rentDel-monthMap[k].rentUber)/monthMap[k].horas).toFixed(2)):null);
+  const monthFhLiq=monthKeys.map(k=>monthMap[k].horas>0?parseFloat(((monthMap[k].rec-monthMap[k].bike-monthMap[k].rentDel-monthMap[k].rentUber-monthMap[k].rentJust)/monthMap[k].horas).toFixed(2)):null);
   const monthHoras=monthKeys.map(k=>parseFloat(monthMap[k].horas.toFixed(1)));
 
   mkChart('hist-feehora',{type:'line',
@@ -2865,6 +2872,7 @@ function renderHistorico(){
   const hiBike=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.bike),0);
   const hiRentDel=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.rentDel),0);
   const hiRentUber=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.rentUber),0);
+  const hiRentJust=gRaw.filter(r=>r.worked).reduce((s,r)=>s+nn(r.rentJust),0);
 
   const hiParts=[
     {lbl:'Deliveroo order fee',val:hiDelOF,color:C.blueDel1},
@@ -2919,7 +2927,7 @@ function renderHistorico(){
   sh('hi-just-ord',Math.round(hiJustOrd)+'');
 
   // Descontos histórico
-  renderDeducts('hi-deducts',hiBike,hiRentDel,hiRentUber,hiCashTips,totalLiq,null);
+  renderDeducts('hi-deducts',hiBike,hiRentDel,hiRentUber,hiRentJust,hiCashTips,totalLiq,null);
   sh('hi-liq-hero',fe(totalLiq));
 
   // ── 3 gráficos por dia da semana ──
